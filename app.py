@@ -4,7 +4,7 @@ import numpy as np
 import json
 import os
 import requests
-from word2number import w2n 
+from word2number import w2n
 import re
 from werkzeug import secure_filename
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
@@ -30,18 +30,18 @@ sessionid = ''
 
 # Initialize WKS Model Credentials
 
-apikey = 'YOUR-NLU-API-KEY-HERE'
-nlu_url = 'YOUR-URL-HERE'
-wks_model_id = 'YOUR-WKS-MODEL-ID-HERE'
+apikey = 'PIDlpotr47I-QoxL2jjs3S2n7zrXgaznNZCixY5crtqB'
+nlu_url = 'https://api.eu-gb.natural-language-understanding.watson.cloud.ibm.com/instances/1b8de61e-3d8d-4ec2-b4c1-dcc7b82db11f",'
+wks_model_id = '3963979a-bc3b-45a1-b9dd-0b3afb09b327'
 
 with open('credentials1.json', 'r') as credentialsFile:
     credentials1 = json.loads(credentialsFile.read())
 
 dsn_driver = "IBM DB2 ODBC DRIVER"
-dsn_database = credentials1['db'] 
+dsn_database = credentials1['db']
 dsn_hostname = credentials1['host']
-dsn_port = "50000"                
-dsn_uid = credentials1['username']      
+dsn_port = "50000"
+dsn_uid = credentials1['username']
 dsn_pwd = credentials1['password']
 
 dsn = (
@@ -99,7 +99,7 @@ def uploader():
             print("\n##DEBUG##\n")
             print('Input: '+ filename_converted, 'Language: '+lang["language"])
             return transcribeAudio(filename_converted, lang["language"])
-        
+
     except Exception as e:
         print("Unable {0}".format(e))
         myResponse = {"message": str(e)}
@@ -112,8 +112,8 @@ def uploader():
 ''' Method to handle Transcription '''
 
 def transcribeAudio(filename, lang):
-    
-    if lang == 'Hi':    
+
+    if lang == 'Hi':
         r = sr.Recognizer()
         with sr.AudioFile(app.config["UPLOAD_DIR"]+filename) as source:
             audio = r.record(source)
@@ -125,9 +125,9 @@ def transcribeAudio(filename, lang):
                     "filepath" : app.config["UPLOAD_DIR"]+filename }
 
         return extractEntities(respo)
-    
+
     elif lang == 'En':
-        
+
         with open(app.config["UPLOAD_DIR"]+filename, 'rb') as audioSource:
             speech_recognition_results = speech_to_text.recognize(
             audio=audioSource,
@@ -136,14 +136,14 @@ def transcribeAudio(filename, lang):
             model='en-US_BroadbandModel',
             word_alternatives_threshold=0.9
             ).get_result()
-            
+
             transcript = ''
             for chunks in speech_recognition_results['results']:
                 if 'alternatives' in chunks.keys():
                     alternatives = chunks['alternatives'][0]
                     if 'transcript' in alternatives:
                         transcript = transcript + alternatives['transcript']
-            
+
             text = transcript.replace('%HESITATION', '')
             res = ""
             words = text.split()
@@ -180,55 +180,55 @@ def transcribeAudio(filename, lang):
                             val = val*int(r)
                         elif int(r) < 100:
                             val = val + int(r)
-       
+
             print('Transcript: '+text)
             respo = { "transcript": filename.split('.')[0]+': ‬'+text,
                         "filepath" : app.config["UPLOAD_DIR"]+filename }
 
             return extractEntities(respo)
-    
+
 
 def extractEntities(transcriptText):
-    
+
     authenticator = IAMAuthenticator(apikey)
     natural_language_understanding = NaturalLanguageUnderstandingV1(
         version = '2019-07-12',
         authenticator = authenticator
     )
-    
+
     natural_language_understanding.set_service_url(nlu_url)
-    
+
     response = natural_language_understanding.analyze(
         text=transcriptText.get("transcript"),
         features=Features(entities=EntitiesOptions(model=wks_model_id))).get_result()
-    
+
     name = ''
     address = ''
     phone = ''
     orders = ''
-    
+
     for entity in response['entities']:
         if entity['type'] == "ADDRESS":
             address = entity['text']
-        
+
         if entity['type'] == "CUSTOMER_NAME":
             name = entity['text']
-        
+
         if entity['type'] == "ORDER_ITEMS":
             orders = entity['text']
-        
+
         if entity['type'] == "CUSTOMER_PHONE":
             phone = entity['text']
-   
+
     response.update({'filepath': transcriptText.get('filepath')})
     print('WKS ENTITIES DETECTED: ')
     print('(NAME): '+name, ('(PHONE): ')+phone, ('(ORDERS): ')+orders, ('(ADDRESS): ')+address, sep="\n")
-    
+
     try:
         ids = getIDs() + 1
     except:
         pass
-    
+
     a="\'"
     n = a+name+a
     o = a+orders+a
@@ -239,7 +239,7 @@ def extractEntities(transcriptText):
         ibm_db.exec_immediate(conn, insert)
     except:
         pass
-    
+
     return jsonify(response)
 
 @app.route('/deleteRecord/<int:ID>')
@@ -257,7 +257,7 @@ def getDatabaseContentsJson():
     select_statement = 'SELECT * FROM RVB49192.ORDERS ORDER BY ID desc;'
     try:
         res = ibm_db.exec_immediate(conn, select_statement)
-        
+
         result = ibm_db.fetch_both(res)
         resultDict = []
         while(result):
@@ -268,7 +268,7 @@ def getDatabaseContentsJson():
                             'ADDRESS': result['ADDRESS']}
             resultDict.append(returnDictBuffer)
             result = ibm_db.fetch_both(res)
-            
+
         return jsonify(resultDict)
     except:
         resultDict = []
@@ -294,7 +294,7 @@ def getIDs():
 
 @app.route('/')
 def index():
-    
+
     return render_template('index.html')
 
 port = os.getenv('VCAP_APP_PORT', '8080')
